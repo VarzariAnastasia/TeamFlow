@@ -16,13 +16,13 @@ namespace TeamFlow.Domain.Entities
       public Guid CreatedByUserId { get; private set; }
       public Enums.TaskItemStatus Status { get; private set; } = Enums.TaskItemStatus.ReadyForDevelopment;
       public Enums.TaskPriority Priority { get; private set; } = Enums.TaskPriority.Medium;
-      public DateTime? DueDate { get; private set; }
+      public DateOnly? DueDate { get; private set; }
       public DateTime CreatedAt { get; private set; }
       public DateTime UpdatedAt { get; private set; }
       public DateTime? CompletedAt { get; private set; }
       public bool IsArchived { get; private set; } = false;
 
-      public TaskItem(Guid projectId, string title, string description, Guid createdByUserId, DateTime? dueDate, DateTime now)
+      public TaskItem(Guid projectId, string title, string description, Guid createdByUserId, DateOnly? dueDate, DateTime now)
       {
          Id = Guid.NewGuid();
          ProjectId = projectId;
@@ -35,16 +35,17 @@ namespace TeamFlow.Domain.Entities
          UpdatedAt = now;
       }
 
-      private void ValidateDueDate(DateTime? dueDate, DateTime now)
+      private void ValidateDueDate(DateOnly? dueDate, DateTime now)
       {
-         if (dueDate < now)
+         if (dueDate < DateOnly.FromDateTime(now))
          {
             throw new Exceptions.BusinessRuleException("Due date cannot be in the past.");
          }
       }
 
-      public void Update(string title, string description, Guid? assignedToUserId, Enums.TaskItemStatus status, Enums.TaskPriority priority, DateTime? dueDate, DateTime now)
+      public void Update(string title, string description, Guid? assignedToUserId, Enums.TaskItemStatus status, Enums.TaskPriority priority, DateOnly? dueDate, DateTime now)
       {
+         EnsureNotArchived();
          Title = ValidateTitle(title);
          Description = ValidateTaskDescription(description);
          AssignedToUserId = assignedToUserId;
@@ -96,14 +97,14 @@ namespace TeamFlow.Domain.Entities
 
       public void AssignToUser(Guid userId, DateTime now)
       {
-         if (IsArchived)
-            return;
+         EnsureNotArchived();
          AssignedToUserId = userId;
          UpdatedAt = now;
       }
 
       public void UnassignUser(DateTime now)
       {
+         EnsureNotArchived();
          AssignedToUserId = null;
          UpdatedAt = now;
       }
@@ -118,7 +119,17 @@ namespace TeamFlow.Domain.Entities
 
       public bool IsOverdue(DateTime? now)
       {
-         return DueDate <= now && Status != Enums.TaskItemStatus.Done;
+         if(!DueDate.HasValue || !now.HasValue)
+         {
+            return false;
+         }
+         return DueDate < DateOnly.FromDateTime(now.Value) && Status != Enums.TaskItemStatus.Done;
+      }
+
+      private void EnsureNotArchived()
+      {
+         if (IsArchived)
+            throw new Exceptions.BusinessRuleException("Cannot modify an archived task.");
       }
    }
 }
