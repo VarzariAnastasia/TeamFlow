@@ -4,9 +4,8 @@ namespace TeamFlow.Domain.Entities
 {
    public class TaskItem
    {
-
-      private const int DescriptionMaxLength = 4000;
-      private const int TaskTitleMaxLength = 200;
+      public const int DescriptionMaxLength = 4000;
+      public const int TitleMaxLength = 200;
 
       public Guid Id { get; private set; }
       public Guid ProjectId { get; private set; }
@@ -14,7 +13,7 @@ namespace TeamFlow.Domain.Entities
       public string? Description { get; private set; }
       public Guid? AssignedToUserId { get; private set; } = null;
       public Guid CreatedByUserId { get; private set; }
-      public Enums.TaskItemStatus Status { get; private set; } = Enums.TaskItemStatus.ReadyForDevelopment;
+      public Enums.TaskItemStatus Status { get; private set; } = Enums.TaskItemStatus.ToDo;
       public Enums.TaskPriority Priority { get; private set; } = Enums.TaskPriority.Medium;
       public DateOnly? DueDate { get; private set; }
       public DateTime CreatedAt { get; private set; }
@@ -22,7 +21,7 @@ namespace TeamFlow.Domain.Entities
       public DateTime? CompletedAt { get; private set; }
       public bool IsArchived { get; private set; } = false;
 
-      public TaskItem(Guid projectId, string title, string description, Guid createdByUserId, DateOnly? dueDate, DateTime now)
+      public TaskItem(Guid projectId, string title, string? description, Guid createdByUserId, DateOnly? dueDate, DateTime now)
       {
          Id = Guid.NewGuid();
          ProjectId = projectId;
@@ -43,14 +42,13 @@ namespace TeamFlow.Domain.Entities
          }
       }
 
-      public void Update(string title, string description, Guid? assignedToUserId, Enums.TaskItemStatus status, Enums.TaskPriority priority, DateOnly? dueDate, DateTime now)
+      public void Update(string title, string? description, Guid? assignedToUserId, Enums.TaskItemStatus status, Enums.TaskPriority priority, DateOnly? dueDate, DateTime now)
       {
          EnsureNotArchived();
          Title = ValidateTitle(title);
          Description = ValidateTaskDescription(description);
          AssignedToUserId = assignedToUserId;
-         ValidateStatusTransition(status, now);
-         Status = status;
+         ChangeStatus(status, now);
          Priority = priority;
          DueDate = dueDate;
          UpdatedAt = now;
@@ -78,9 +76,9 @@ namespace TeamFlow.Domain.Entities
          {
             throw new Exceptions.BusinessRuleException("Task title cannot be empty.");
          }
-         if (trimmedTitle.Length > TaskTitleMaxLength)
+         if (trimmedTitle.Length > TitleMaxLength)
          {
-            throw new Exceptions.BusinessRuleException($"Task title cannot exceed {TaskTitleMaxLength} characters.");
+            throw new Exceptions.BusinessRuleException($"Task title cannot exceed {TitleMaxLength} characters.");
          }
          return trimmedTitle;
       }
@@ -130,6 +128,14 @@ namespace TeamFlow.Domain.Entities
       {
          if (IsArchived)
             throw new Exceptions.BusinessRuleException("Cannot modify an archived task.");
+      }
+
+      public void ChangeStatus(Enums.TaskItemStatus newStatus, DateTime now)
+      {
+         EnsureNotArchived();
+         ValidateStatusTransition(newStatus, now);
+         Status = newStatus;
+         UpdatedAt = now;
       }
    }
 }

@@ -8,7 +8,7 @@ namespace TeamFlow.Domain.Enums
 {
    public enum TaskItemStatus
    {
-      ReadyForDevelopment,
+      ToDo,
       InProgress,
       InReview,
       Done

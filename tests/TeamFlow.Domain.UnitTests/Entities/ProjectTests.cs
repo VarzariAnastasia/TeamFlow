@@ -22,8 +22,6 @@ namespace TeamFlow.Domain.UnitTests.Entities
          return project;
       }
 
-      // ---------- Constructor ----------
-
       [Fact]
       public void Constructor_WithValidData_SetsStatusToPlanned()   // BR-P3
       {
@@ -79,7 +77,7 @@ namespace TeamFlow.Domain.UnitTests.Entities
       }
 
       [Fact]
-      public void Constructor_WithDescriptionOf4000Chars_Succeeds()   // Field limit: Description max 4000
+      public void Constructor_WithDescriptionOf4000Chars_Succeeds()   
       {
          var description = new string('a', 4000);
 
@@ -89,7 +87,7 @@ namespace TeamFlow.Domain.UnitTests.Entities
       }
 
       [Fact]
-      public void Constructor_WithDescriptionOf4001Chars_Throws()   // Field limit: Description max 4000
+      public void Constructor_WithDescriptionOf4001Chars_Throws()  
       {
          var description = new string('a', 4001);
 
@@ -141,8 +139,6 @@ namespace TeamFlow.Domain.UnitTests.Entities
          Assert.Null(project.EndDate);
       }
 
-      // ---------- Archive ----------
-
       [Fact]
       public void Archive_WhenCompleted_SetsStatusToArchived()   // BR-P6
       {
@@ -179,9 +175,7 @@ namespace TeamFlow.Domain.UnitTests.Entities
 
          Assert.Equal(ProjectStatus.Archived, project.Status);
          Assert.Equal(Now.AddHours(1), project.UpdatedAt);
-      }
-
-      // ---------- ChangeStatus ----------
+      }  
 
       [Theory]
       [InlineData(ProjectStatus.Active)]

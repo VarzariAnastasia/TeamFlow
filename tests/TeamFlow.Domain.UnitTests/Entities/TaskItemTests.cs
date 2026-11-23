@@ -13,11 +13,10 @@ namespace TeamFlow.Domain.UnitTests.Entities
       private static readonly Guid CreatorId = Guid.NewGuid();
 
       private static TaskItem CreateTask(string title = "Write tests", string? description = null, DateOnly? dueDate = null)
-          => new(ProjectId, title, description!, CreatorId, dueDate, Now);
+          => new(ProjectId, title, description, CreatorId, dueDate, Now);
 
-     
       private static void SetStatus(TaskItem task, TaskItemStatus status, DateTime now)
-          => task.Update(task.Title, task.Description!, task.AssignedToUserId, status, task.Priority, task.DueDate, now);
+          => task.ChangeStatus(status, now);
 
       private static TaskItem CreateArchivedTask()
       {
@@ -34,7 +33,7 @@ namespace TeamFlow.Domain.UnitTests.Entities
          Assert.NotEqual(Guid.Empty, task.Id);
          Assert.Equal(ProjectId, task.ProjectId);
          Assert.Equal(CreatorId, task.CreatedByUserId);
-         Assert.Equal(TaskItemStatus.ReadyForDevelopment, task.Status);
+         Assert.Equal(TaskItemStatus.ToDo, task.Status);
          Assert.Equal(TaskPriority.Medium, task.Priority);
          Assert.Null(task.AssignedToUserId);
          Assert.Null(task.CompletedAt);
@@ -122,7 +121,7 @@ namespace TeamFlow.Domain.UnitTests.Entities
          var task = CreateTask(dueDate: Today);
          var muchLater = Now.AddDays(5);
 
-         task.Update(task.Title, null!, null, task.Status, task.Priority, Today, muchLater);
+         task.Update(task.Title, null, null, task.Status, task.Priority, Today, muchLater);
 
          Assert.Equal(Today, task.DueDate);
       }
@@ -166,7 +165,7 @@ namespace TeamFlow.Domain.UnitTests.Entities
      
 
       [Fact]
-      public void Update_ToDone_SetsCompletedAt()   // BR-T6
+      public void ChangeStatus_ToDone_SetsCompletedAt()   // BR-T6
       {
          var task = CreateTask();
          var later = Now.AddHours(1);
@@ -178,7 +177,7 @@ namespace TeamFlow.Domain.UnitTests.Entities
       }
 
       [Fact]
-      public void Update_OutOfDone_ClearsCompletedAt()   // BR-T7
+      public void ChangeStatus_OutOfDone_ClearsCompletedAt()   // BR-T7
       {
          var task = CreateTask();
          SetStatus(task, TaskItemStatus.Done, Now);
@@ -190,7 +189,7 @@ namespace TeamFlow.Domain.UnitTests.Entities
       }
 
       [Fact]
-      public void Update_DoneToDone_KeepsOriginalCompletedAt()   // BR-T8
+      public void ChangeStatus_DoneToDone_KeepsOriginalCompletedAt()   // BR-T8
       {
          var task = CreateTask();
          SetStatus(task, TaskItemStatus.Done, Now);
@@ -206,12 +205,36 @@ namespace TeamFlow.Domain.UnitTests.Entities
          var task = CreateTask();
          var later = Now.AddHours(1);
 
-         task.Update("New title", null!, null, TaskItemStatus.InProgress, TaskPriority.High, null, later);
+         task.Update("New title", null, null, TaskItemStatus.InProgress, TaskPriority.High, null, later);
 
          Assert.Equal("New title", task.Title);
          Assert.Equal(TaskPriority.High, task.Priority);
          Assert.Equal(later, task.UpdatedAt);
       }      
+
+      [Fact]
+      public void ChangeStatus_SetsStatusAndUpdatedAt()   // BR-T10
+      {
+         var task = CreateTask();
+         var later = Now.AddHours(1);
+
+         task.ChangeStatus(TaskItemStatus.InReview, later);
+
+         Assert.Equal(TaskItemStatus.InReview, task.Status);
+         Assert.Equal(later, task.UpdatedAt);
+      }
+
+      [Fact]
+      public void Update_ToDone_SetsCompletedAt()   // BR-T6: Update reuses ChangeStatus
+      {
+         var task = CreateTask();
+         var later = Now.AddHours(1);
+
+         task.Update(task.Title, null, null, TaskItemStatus.Done, task.Priority, null, later);
+
+         Assert.Equal(TaskItemStatus.Done, task.Status);
+         Assert.Equal(later, task.CompletedAt);
+      }
 
       [Fact]
       public void AssignToUser_SetsAssigneeAndUpdatedAt()   // BR-T4 
@@ -262,11 +285,22 @@ namespace TeamFlow.Domain.UnitTests.Entities
       }
 
       [Fact]
+      public void ChangeStatus_WhenArchived_Throws()   // BR-T11
+      {
+         var task = CreateArchivedTask();
+
+         Assert.Throws<BusinessRuleException>(() => task.ChangeStatus(TaskItemStatus.Done, Now));
+         Assert.Equal(TaskItemStatus.ToDo, task.Status);
+      }
+
+      [Fact]
       public void Update_WhenArchived_Throws()   // BR-T11
       {
          var task = CreateArchivedTask();
 
-         Assert.Throws<BusinessRuleException>(() => SetStatus(task, TaskItemStatus.Done, Now));
+         Assert.Throws<BusinessRuleException>(() =>
+            task.Update("New title", null, null, TaskItemStatus.ToDo, TaskPriority.High, null, Now));
+         Assert.Equal("Write tests", task.Title);
       }
 
       [Fact]
