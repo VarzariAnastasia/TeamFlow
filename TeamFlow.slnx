@@ -2,5 +2,7 @@
   <Folder Name="/src/">
     <Project Path="src/TeamFlow.Domain/TeamFlow.Domain.csproj" />
   </Folder>
-  <Folder Name="/tests/" />
+  <Folder Name="/tests/">
+    <Project Path="tests/TeamFlow.Domain.UnitTests/TeamFlow.Domain.UnitTests.csproj" />
+  </Folder>
 </Solution>
